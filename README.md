@@ -84,7 +84,7 @@ Abra [http://localhost:3000](http://localhost:3000).
 1. ✅ Setup do projeto
 2. ✅ Modelagem do banco de dados
 3. ✅ Autenticação (NextAuth)
-4. Perfil do jogador
+4. ✅ Perfil do jogador
 5. Quadras (mapa, busca, filtros)
 6. Reservas (pública oficial / pública sem sistema / privada)
 7. Partidas / peladas
