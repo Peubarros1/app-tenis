@@ -7,7 +7,7 @@ Plataforma web para jogadores de tênis em Recife: encontrar quadras (públicas 
 - **Next.js 16** (App Router) + **TypeScript** — full-stack (Route Handlers/Server Actions, sem backend separado)
 - **PostgreSQL + PostGIS** (busca geoespacial) via **Prisma ORM**
 - **Redis** — cache, filas e pub/sub do chat de partidas
-- **NextAuth.js** — autenticação (etapa 3)
+- **NextAuth.js (Auth.js v5)** — autenticação (e-mail/senha via Credentials + Google opcional)
 - **Tailwind CSS**
 - **Google Maps JavaScript API** — mapa de quadras (etapa 5)
 
@@ -18,6 +18,7 @@ O código em `src/` segue uma separação inspirada em Clean Architecture, adapt
 ```
 src/
 ├── app/                        # Rotas do Next.js (App Router), páginas e Route Handlers
+├── components/                  # Componentes de UI compartilhados (Server/Client Components)
 ├── domain/
 │   ├── entities/                # Entidades e regras de domínio (sem dependências externas)
 │   ├── repositories/             # Interfaces de repositório (contratos)
@@ -28,7 +29,11 @@ src/
 │   ├── persistence/prisma/       # Implementações Prisma dos repositórios
 │   └── services/                 # Integrações externas (mapas, e-mail, push)
 ├── lib/
+│   ├── auth.ts                   # Config completa do NextAuth (Node runtime: adapter, providers)
+│   ├── auth.config.ts            # Config compartilhada, edge-safe (sem Prisma/bcrypt)
+│   ├── auth-edge.ts              # Instância do NextAuth usada só pelo proxy.ts (Edge Runtime)
 │   └── validation/                # Schemas Zod compartilhados
+├── proxy.ts                      # Proteção de rotas autenticadas (antigo "middleware")
 └── generated/prisma/              # Cliente Prisma gerado (não versionado)
 ```
 
@@ -49,7 +54,7 @@ npm run docker:up
 # 2. Instalar dependências (gera o Prisma Client automaticamente)
 npm install
 
-# 3. Copiar variáveis de ambiente
+# 3. Copiar variáveis de ambiente (gere um AUTH_SECRET com: openssl rand -base64 32)
 cp .env.example .env
 
 # 4. Rodar migrations
@@ -78,7 +83,7 @@ Abra [http://localhost:3000](http://localhost:3000).
 
 1. ✅ Setup do projeto
 2. ✅ Modelagem do banco de dados
-3. Autenticação (NextAuth)
+3. ✅ Autenticação (NextAuth)
 4. Perfil do jogador
 5. Quadras (mapa, busca, filtros)
 6. Reservas (pública oficial / pública sem sistema / privada)

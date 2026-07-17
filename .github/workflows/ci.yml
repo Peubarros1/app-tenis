@@ -12,6 +12,7 @@ jobs:
 
     env:
       DATABASE_URL: "postgresql://tennis:tennis@localhost:5434/tennis_platform?schema=public"
+      AUTH_SECRET: "ci-only-secret-not-used-in-production"
 
     steps:
       - name: Checkout
