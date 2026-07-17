@@ -86,7 +86,7 @@ Abra [http://localhost:3000](http://localhost:3000).
 3. ✅ Autenticação (NextAuth)
 4. ✅ Perfil do jogador
 5. ✅ Quadras (mapa, busca, filtros)
-6. Reservas (pública oficial / pública sem sistema / privada)
+6. ✅ Reservas (pública oficial / pública sem sistema / privada)
 7. Partidas / peladas
 8. Chat em tempo real
 9. Social (amigos, convites, notificações)

@@ -25,6 +25,12 @@ export async function SiteHeader() {
           {session?.user ? (
             <>
               <Link
+                href="/reservas"
+                className="text-zinc-700 hover:text-zinc-950 dark:text-zinc-300 dark:hover:text-zinc-50"
+              >
+                Minhas reservas
+              </Link>
+              <Link
                 href="/conta"
                 className="text-zinc-700 hover:text-zinc-950 dark:text-zinc-300 dark:hover:text-zinc-50"
               >

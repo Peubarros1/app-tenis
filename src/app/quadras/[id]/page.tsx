@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { StarRating } from "@/components/star-rating";
 import { BookingMode } from "@/generated/prisma/client";
+import { PrismaBookingRepository } from "@/infrastructure/persistence/prisma/booking-repository";
 import { PrismaCourtRepository } from "@/infrastructure/persistence/prisma/court-repository";
 import {
   BOOKING_MODE_LABELS,
@@ -10,8 +11,9 @@ import {
   WEEKDAY_LABELS,
 } from "@/lib/constants/court-labels";
 import { auth } from "@/lib/auth";
+import { formatRecifeDateTime } from "@/lib/datetime";
 import { toggleFavoriteCourtAction } from "../actions";
-import { addCourtReviewAction } from "./actions";
+import { addCourtReviewAction, createBookingAction } from "./actions";
 
 function formatPrice(cents: number | null, currency: string) {
   if (cents === null) return "Preço não informado";
@@ -23,10 +25,10 @@ export default async function QuadraDetalhePage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; bookingError?: string; bookingSuccess?: string }>;
 }) {
   const { id } = await params;
-  const { error } = await searchParams;
+  const { error, bookingError, bookingSuccess } = await searchParams;
   const session = await auth();
 
   const courtRepository = new PrismaCourtRepository();
@@ -35,6 +37,11 @@ export default async function QuadraDetalhePage({
   if (!court) {
     notFound();
   }
+
+  const upcomingBookings =
+    court.bookingMode === BookingMode.INTERNAL
+      ? await new PrismaBookingRepository().listUpcomingForCourt(court.id)
+      : [];
 
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-8 px-6 py-12">
@@ -141,9 +148,87 @@ export default async function QuadraDetalhePage({
           </p>
         )}
         {court.bookingMode === BookingMode.INTERNAL && (
-          <p className="mt-2 text-sm text-zinc-700 dark:text-zinc-300">
-            Reservas organizadas pela plataforma chegam na Etapa 6.
-          </p>
+          <div className="mt-3 flex flex-col gap-4">
+            {bookingError && (
+              <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950 dark:text-red-300">
+                {bookingError}
+              </p>
+            )}
+            {bookingSuccess && (
+              <p className="rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">
+                Reserva confirmada! Veja em{" "}
+                <Link href="/reservas" className="underline underline-offset-2">
+                  Minhas reservas
+                </Link>
+                .
+              </p>
+            )}
+
+            {upcomingBookings.length > 0 && (
+              <div>
+                <h3 className="text-xs font-semibold tracking-wide text-zinc-500 uppercase dark:text-zinc-400">
+                  Próximos horários já reservados
+                </h3>
+                <ul className="mt-1 flex flex-col gap-1 text-sm text-zinc-700 dark:text-zinc-300">
+                  {upcomingBookings.map((slot) => (
+                    <li key={slot.startTime.toISOString()}>
+                      {formatRecifeDateTime(slot.startTime)} – {formatRecifeDateTime(slot.endTime)}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {session?.user ? (
+              <form action={createBookingAction} className="flex flex-wrap items-end gap-3">
+                <input type="hidden" name="courtId" value={court.id} />
+                <label className="flex flex-col gap-1 text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                  Data
+                  <input
+                    type="date"
+                    name="date"
+                    required
+                    className="rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+                  />
+                </label>
+                <label className="flex flex-col gap-1 text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                  Início
+                  <input
+                    type="time"
+                    name="startTime"
+                    defaultValue="08:00"
+                    required
+                    className="rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+                  />
+                </label>
+                <label className="flex flex-col gap-1 text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                  Duração
+                  <select
+                    name="durationMinutes"
+                    defaultValue="60"
+                    className="rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+                  >
+                    <option value="60">1 hora</option>
+                    <option value="90">1h30</option>
+                    <option value="120">2 horas</option>
+                  </select>
+                </label>
+                <button
+                  type="submit"
+                  className="rounded-full bg-zinc-900 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
+                >
+                  Reservar
+                </button>
+              </form>
+            ) : (
+              <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                <Link href="/login" className="underline underline-offset-2">
+                  Entre na sua conta
+                </Link>{" "}
+                para reservar esta quadra.
+              </p>
+            )}
+          </div>
         )}
       </div>
 
