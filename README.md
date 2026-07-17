@@ -34,6 +34,10 @@ src/
 
 Camadas superiores (`app`) dependem de `application`, que depende de `domain`; `infrastructure` implementa os contratos definidos em `domain/repositories`. Isso mantém a lógica de negócio testável e independente do framework.
 
+## Banco de dados
+
+Schema completo em [`prisma/schema.prisma`](prisma/schema.prisma). Diagrama ER e decisões de modelagem em [`docs/er-diagram.md`](docs/er-diagram.md).
+
 ## Desenvolvimento local
 
 Pré-requisitos: Node.js 22+, Docker.
@@ -59,21 +63,21 @@ Abra [http://localhost:3000](http://localhost:3000).
 
 ## Scripts
 
-| Script | Descrição |
-|---|---|
-| `npm run dev` | Servidor de desenvolvimento |
-| `npm run build` | Build de produção |
-| `npm run lint` | ESLint |
-| `npm run typecheck` | Checagem de tipos (`tsc --noEmit`) |
-| `npm run format` / `format:check` | Prettier |
+| Script                              | Descrição                            |
+| ----------------------------------- | ------------------------------------ |
+| `npm run dev`                       | Servidor de desenvolvimento          |
+| `npm run build`                     | Build de produção                    |
+| `npm run lint`                      | ESLint                               |
+| `npm run typecheck`                 | Checagem de tipos (`tsc --noEmit`)   |
+| `npm run format` / `format:check`   | Prettier                             |
 | `npm run docker:up` / `docker:down` | Sobe/derruba Postgres e Redis locais |
-| `npm run prisma:migrate` | Aplica migrations do Prisma |
-| `npm run prisma:generate` | Gera o Prisma Client |
+| `npm run prisma:migrate`            | Aplica migrations do Prisma          |
+| `npm run prisma:generate`           | Gera o Prisma Client                 |
 
 ## Roadmap de etapas
 
 1. ✅ Setup do projeto
-2. Modelagem do banco de dados
+2. ✅ Modelagem do banco de dados
 3. Autenticação (NextAuth)
 4. Perfil do jogador
 5. Quadras (mapa, busca, filtros)

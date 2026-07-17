@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      DATABASE_URL: "postgresql://tennis:tennis@localhost:5432/tennis_platform?schema=public"
+      DATABASE_URL: "postgresql://tennis:tennis@localhost:5434/tennis_platform?schema=public"
 
     steps:
       - name: Checkout
