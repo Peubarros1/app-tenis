@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { PrismaPlayerRepository } from "@/infrastructure/persistence/prisma/player-repository";
 import { auth } from "@/lib/auth";
@@ -146,18 +147,23 @@ export default async function ContaPage({
         </h2>
         {favoriteCourts.length === 0 ? (
           <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
-            Você ainda não favoritou nenhuma quadra. A busca e o cadastro de quadras chegam na Etapa
-            5.
+            Você ainda não favoritou nenhuma quadra.{" "}
+            <Link href="/quadras" className="underline underline-offset-2">
+              Buscar quadras
+            </Link>
+            .
           </p>
         ) : (
           <ul className="mt-2 flex flex-col gap-2">
             {favoriteCourts.map((court) => (
-              <li
-                key={court.id}
-                className="flex justify-between rounded-md border border-zinc-200 px-3 py-2 text-sm dark:border-zinc-800"
-              >
-                <span className="font-medium text-zinc-950 dark:text-zinc-50">{court.name}</span>
-                <span className="text-zinc-500 dark:text-zinc-400">{court.neighborhood}</span>
+              <li key={court.id}>
+                <Link
+                  href={`/quadras/${court.id}`}
+                  className="flex justify-between rounded-md border border-zinc-200 px-3 py-2 text-sm transition-colors hover:border-zinc-400 dark:border-zinc-800 dark:hover:border-zinc-600"
+                >
+                  <span className="font-medium text-zinc-950 dark:text-zinc-50">{court.name}</span>
+                  <span className="text-zinc-500 dark:text-zinc-400">{court.neighborhood}</span>
+                </Link>
               </li>
             ))}
           </ul>

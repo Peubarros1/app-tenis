@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 export function LocationButton({
   initialLatitude,
@@ -9,6 +9,7 @@ export function LocationButton({
   initialLatitude: number | null;
   initialLongitude: number | null;
 }) {
+  const buttonRef = useRef<HTMLButtonElement>(null);
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(
     initialLatitude !== null && initialLongitude !== null
       ? { lat: initialLatitude, lng: initialLongitude }
@@ -25,7 +26,7 @@ export function LocationButton({
     setStatus("loading");
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        const form = document.getElementById("profile-form") as HTMLFormElement | null;
+        const form = buttonRef.current?.closest("form");
         const latInput = form?.elements.namedItem("latitude") as HTMLInputElement | null;
         const lngInput = form?.elements.namedItem("longitude") as HTMLInputElement | null;
         if (latInput) latInput.value = String(position.coords.latitude);
@@ -41,6 +42,7 @@ export function LocationButton({
   return (
     <div className="flex flex-col gap-1">
       <button
+        ref={buttonRef}
         type="button"
         onClick={handleClick}
         disabled={status === "loading"}

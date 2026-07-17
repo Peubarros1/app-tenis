@@ -16,6 +16,12 @@ export async function SiteHeader() {
         </Link>
 
         <nav className="flex items-center gap-4 text-sm font-medium">
+          <Link
+            href="/quadras"
+            className="text-zinc-700 hover:text-zinc-950 dark:text-zinc-300 dark:hover:text-zinc-50"
+          >
+            Quadras
+          </Link>
           {session?.user ? (
             <>
               <Link
