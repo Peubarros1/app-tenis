@@ -44,4 +44,8 @@ next-env.d.ts
 # editor (personal settings, not project-shared)
 .vscode/
 
+# AI agent instructions (local only)
+CLAUDE.md
+AGENTS.md
+
 /src/generated/prisma
