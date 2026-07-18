@@ -22,6 +22,12 @@ export async function SiteHeader() {
           >
             Quadras
           </Link>
+          <Link
+            href="/partidas"
+            className="text-zinc-700 hover:text-zinc-950 dark:text-zinc-300 dark:hover:text-zinc-50"
+          >
+            Partidas
+          </Link>
           {session?.user ? (
             <>
               <Link
