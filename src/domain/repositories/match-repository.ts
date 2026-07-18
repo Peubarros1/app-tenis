@@ -56,18 +56,26 @@ export interface CreateMatchInput {
 
 export interface MatchRepository {
   create(input: CreateMatchInput): Promise<{ id: string }>;
-  search(filters: MatchSearchFilters): Promise<MatchSummary[]>;
+  /** viewerUserId habilita ver também partidas FRIENDS_ONLY de quem é seu amigo. */
+  search(filters: MatchSearchFilters, viewerUserId?: string): Promise<MatchSummary[]>;
   findById(id: string, viewerUserId?: string): Promise<MatchDetail | null>;
   /** Torna o usuário participante (CONFIRMED se houver vaga, senão WAITLIST). Retorna o status final. */
   join(matchId: string, userId: string): Promise<ParticipantStatus>;
   /** Convida um jogador (por e-mail) para a partida; cria participação com status INVITED. */
-  invite(matchId: string, organizerId: string, inviteeEmail: string): Promise<void>;
+  invite(
+    matchId: string,
+    organizerId: string,
+    inviteeEmail: string,
+  ): Promise<{ inviteeId: string; matchTitle: string }>;
   /** Aceita ou recusa um convite pendente (INVITED). */
   respondToInvite(matchId: string, userId: string, accept: boolean): Promise<void>;
   /** Sai da partida (participação ativa -> LEFT), promovendo o primeiro da fila de espera se houver vaga. */
   leave(matchId: string, userId: string): Promise<void>;
-  /** Cancela a partida inteira (só o organizador). */
-  cancel(matchId: string, organizerId: string): Promise<void>;
+  /** Cancela a partida inteira (só o organizador). Retorna quem precisa ser avisado (participantes ativos, exceto o organizador). */
+  cancel(
+    matchId: string,
+    organizerId: string,
+  ): Promise<{ notifiedUserIds: string[]; matchTitle: string }>;
   /** Partidas em que o usuário tem um convite pendente (status INVITED). */
   listInvitesForUser(userId: string): Promise<MatchSummary[]>;
 }

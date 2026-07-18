@@ -9,8 +9,7 @@ export const MATCH_STATUS_LABELS: Record<MatchStatus, string> = {
 
 export const MATCH_VISIBILITY_LABELS: Record<MatchVisibility, string> = {
   [MatchVisibility.PUBLIC]: "Pública (qualquer jogador pode entrar)",
-  [MatchVisibility.FRIENDS_ONLY]:
-    "Só para amigos (por enquanto funciona como privada — a lista de amigos chega na Etapa 9)",
+  [MatchVisibility.FRIENDS_ONLY]: "Só para seus amigos (e quem você convidar)",
   [MatchVisibility.PRIVATE]: "Privada (só quem for convidado)",
 };
 

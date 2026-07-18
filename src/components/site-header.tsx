@@ -1,9 +1,13 @@
 import Link from "next/link";
+import { PrismaNotificationRepository } from "@/infrastructure/persistence/prisma/notification-repository";
 import { auth } from "@/lib/auth";
 import { signOutAction } from "@/lib/auth-actions";
 
 export async function SiteHeader() {
   const session = await auth();
+  const unreadCount = session?.user
+    ? await new PrismaNotificationRepository().countUnread(session.user.id)
+    : 0;
 
   return (
     <header className="border-b border-zinc-200 dark:border-zinc-800">
@@ -35,6 +39,18 @@ export async function SiteHeader() {
                 className="text-zinc-700 hover:text-zinc-950 dark:text-zinc-300 dark:hover:text-zinc-50"
               >
                 Minhas reservas
+              </Link>
+              <Link
+                href="/amigos"
+                className="text-zinc-700 hover:text-zinc-950 dark:text-zinc-300 dark:hover:text-zinc-50"
+              >
+                Amigos
+              </Link>
+              <Link
+                href="/notificacoes"
+                className="text-zinc-700 hover:text-zinc-950 dark:text-zinc-300 dark:hover:text-zinc-50"
+              >
+                🔔{unreadCount > 0 ? ` ${unreadCount}` : ""}
               </Link>
               <Link
                 href="/conta"

@@ -1,4 +1,5 @@
 import {
+  FriendshipStatus,
   MatchStatus,
   MatchVisibility,
   ParticipantStatus,
@@ -103,12 +104,35 @@ export class PrismaMatchRepository implements MatchRepository {
     });
   }
 
-  async search(filters: MatchSearchFilters): Promise<MatchSummary[]> {
+  async search(filters: MatchSearchFilters, viewerUserId?: string): Promise<MatchSummary[]> {
     const matches = await prisma.match.findMany({
       where: {
-        visibility: MatchVisibility.PUBLIC,
         status: { in: [MatchStatus.OPEN, MatchStatus.FULL] },
         scheduledAt: { gt: nowAsRecifeWallClock() },
+        OR: [
+          { visibility: MatchVisibility.PUBLIC },
+          ...(viewerUserId
+            ? [
+                {
+                  visibility: MatchVisibility.FRIENDS_ONLY,
+                  organizer: {
+                    OR: [
+                      {
+                        friendshipsSent: {
+                          some: { addresseeId: viewerUserId, status: FriendshipStatus.ACCEPTED },
+                        },
+                      },
+                      {
+                        friendshipsReceived: {
+                          some: { requesterId: viewerUserId, status: FriendshipStatus.ACCEPTED },
+                        },
+                      },
+                    ],
+                  },
+                },
+              ]
+            : []),
+        ],
         ...(filters.neighborhood ? { court: { neighborhood: filters.neighborhood } } : {}),
       },
       orderBy: { scheduledAt: "asc" },
@@ -234,10 +258,14 @@ export class PrismaMatchRepository implements MatchRepository {
     });
   }
 
-  async invite(matchId: string, organizerId: string, inviteeEmail: string): Promise<void> {
+  async invite(
+    matchId: string,
+    organizerId: string,
+    inviteeEmail: string,
+  ): Promise<{ inviteeId: string; matchTitle: string }> {
     const match = await prisma.match.findUnique({
       where: { id: matchId },
-      select: { organizerId: true, status: true },
+      select: { organizerId: true, status: true, title: true },
     });
     if (!match) throw new MatchNotFoundError();
     if (match.organizerId !== organizerId) throw new ForbiddenMatchActionError();
@@ -268,6 +296,8 @@ export class PrismaMatchRepository implements MatchRepository {
         data: { matchId, userId: invitee.id, status: ParticipantStatus.INVITED },
       });
     }
+
+    return { inviteeId: invitee.id, matchTitle: match.title };
   }
 
   async respondToInvite(matchId: string, userId: string, accept: boolean): Promise<void> {
@@ -363,21 +393,40 @@ export class PrismaMatchRepository implements MatchRepository {
     });
   }
 
-  async cancel(matchId: string, organizerId: string): Promise<void> {
+  async cancel(
+    matchId: string,
+    organizerId: string,
+  ): Promise<{ notifiedUserIds: string[]; matchTitle: string }> {
+    const [affectedParticipants, matchBeforeCancel] = await Promise.all([
+      prisma.matchParticipant.findMany({
+        where: {
+          matchId,
+          userId: { not: organizerId },
+          status: { in: ACTIVE_PARTICIPANT_STATUSES },
+        },
+        select: { userId: true },
+      }),
+      prisma.match.findUnique({
+        where: { id: matchId },
+        select: { title: true, organizerId: true },
+      }),
+    ]);
+
     const result = await prisma.match.updateMany({
       where: { id: matchId, organizerId, status: { in: [MatchStatus.OPEN, MatchStatus.FULL] } },
       data: { status: MatchStatus.CANCELLED },
     });
 
     if (result.count === 0) {
-      const match = await prisma.match.findUnique({
-        where: { id: matchId },
-        select: { organizerId: true },
-      });
-      if (!match) throw new MatchNotFoundError();
-      if (match.organizerId !== organizerId) throw new ForbiddenMatchActionError();
+      if (!matchBeforeCancel) throw new MatchNotFoundError();
+      if (matchBeforeCancel.organizerId !== organizerId) throw new ForbiddenMatchActionError();
       throw new MatchNotOpenError();
     }
+
+    return {
+      notifiedUserIds: affectedParticipants.map((participant) => participant.userId),
+      matchTitle: matchBeforeCancel!.title,
+    };
   }
 
   async listInvitesForUser(userId: string): Promise<MatchSummary[]> {

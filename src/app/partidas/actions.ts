@@ -9,6 +9,7 @@ import { LeaveMatch } from "@/application/use-cases/leave-match";
 import { RespondToMatchInvite } from "@/application/use-cases/respond-to-match-invite";
 import { AppError } from "@/domain/errors/app-error";
 import { PrismaMatchRepository } from "@/infrastructure/persistence/prisma/match-repository";
+import { PrismaNotificationRepository } from "@/infrastructure/persistence/prisma/notification-repository";
 import { auth } from "@/lib/auth";
 import { inviteToMatchSchema } from "@/lib/validation/match";
 
@@ -67,7 +68,10 @@ export async function cancelMatchAction(formData: FormData) {
   if (!matchId) return;
 
   try {
-    await new CancelMatch(new PrismaMatchRepository()).execute(matchId, session.user.id);
+    await new CancelMatch(new PrismaMatchRepository(), new PrismaNotificationRepository()).execute(
+      matchId,
+      session.user.id,
+    );
   } catch (error) {
     if (error instanceof AppError) {
       redirect(`/partidas/${matchId}?error=${encodeURIComponent(error.message)}`);
@@ -94,11 +98,10 @@ export async function inviteToMatchAction(formData: FormData) {
   }
 
   try {
-    await new InviteToMatch(new PrismaMatchRepository()).execute(
-      matchId,
-      session.user.id,
-      parsed.data.email,
-    );
+    await new InviteToMatch(
+      new PrismaMatchRepository(),
+      new PrismaNotificationRepository(),
+    ).execute(matchId, session.user.id, parsed.data.email);
   } catch (error) {
     if (error instanceof AppError) {
       redirect(`/partidas/${matchId}?error=${encodeURIComponent(error.message)}`);

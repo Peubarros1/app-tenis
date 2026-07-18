@@ -1,7 +1,14 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth-edge";
 
-const PROTECTED_PREFIXES = ["/conta", "/quadras/nova", "/reservas", "/partidas/nova"];
+const PROTECTED_PREFIXES = [
+  "/conta",
+  "/quadras/nova",
+  "/reservas",
+  "/partidas/nova",
+  "/amigos",
+  "/notificacoes",
+];
 
 export default auth((req) => {
   const isProtected = PROTECTED_PREFIXES.some((prefix) => req.nextUrl.pathname.startsWith(prefix));

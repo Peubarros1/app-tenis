@@ -89,5 +89,5 @@ Abra [http://localhost:3000](http://localhost:3000).
 6. ✅ Reservas (pública oficial / pública sem sistema / privada)
 7. ✅ Partidas / peladas
 8. ✅ Chat da partida (quase-tempo-real via polling)
-9. Social (amigos, convites, notificações)
+9. ✅ Social (amigos, convites, notificações)
 10. Avaliações e estatísticas

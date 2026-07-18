@@ -41,3 +41,15 @@ export function formatRecifeTime(date: Date): string {
     minute: "2-digit",
   });
 }
+
+/** Igual a `formatRecifeTime`, mas com data completa — para timestamps GENUÍNOS em UTC. */
+export function formatRecifeFullDateTime(date: Date): string {
+  return date.toLocaleString("pt-BR", {
+    timeZone: "America/Recife",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}

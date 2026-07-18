@@ -16,7 +16,7 @@ export default async function PartidasPage({
 
   const matchRepository = new PrismaMatchRepository();
   const [matches, invites] = await Promise.all([
-    matchRepository.search({}),
+    matchRepository.search({}, session?.user?.id),
     session?.user ? matchRepository.listInvitesForUser(session.user.id) : Promise.resolve([]),
   ]);
 
