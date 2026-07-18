@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { MatchChat } from "@/components/match-chat";
 import { ParticipantStatus } from "@/generated/prisma/client";
 import { PrismaMatchRepository } from "@/infrastructure/persistence/prisma/match-repository";
+import { PrismaPlayerRatingRepository } from "@/infrastructure/persistence/prisma/player-rating-repository";
 import {
   MATCH_STATUS_LABELS,
   MATCH_VISIBILITY_LABELS,
@@ -10,7 +11,7 @@ import {
 } from "@/lib/constants/match-labels";
 import { SKILL_LEVEL_LABELS } from "@/lib/constants/skill-level-labels";
 import { auth } from "@/lib/auth";
-import { formatRecifeDateTime } from "@/lib/datetime";
+import { formatRecifeDateTime, nowAsRecifeWallClock } from "@/lib/datetime";
 import {
   cancelMatchAction,
   inviteToMatchAction,
@@ -18,16 +19,22 @@ import {
   leaveMatchAction,
   respondToMatchInviteAction,
 } from "../actions";
+import { ratePlayerAction } from "./rating-actions";
 
 export default async function PartidaDetalhePage({
   params,
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ error?: string; invited?: string }>;
+  searchParams: Promise<{
+    error?: string;
+    invited?: string;
+    ratingError?: string;
+    ratingSuccess?: string;
+  }>;
 }) {
   const { id } = await params;
-  const { error, invited } = await searchParams;
+  const { error, invited, ratingError, ratingSuccess } = await searchParams;
   const session = await auth();
 
   const match = await new PrismaMatchRepository().findById(id, session?.user?.id);
@@ -38,6 +45,15 @@ export default async function PartidaDetalhePage({
   const isOrganizer = session?.user?.id === match.organizerId;
   const viewerStatus = match.viewerParticipantStatus;
   const matchIsActive = match.status === "OPEN" || match.status === "FULL";
+
+  const matchEndsAt = new Date(match.scheduledAt.getTime() + match.durationMinutes * 60_000);
+  const matchHasEnded = match.status !== "CANCELLED" && matchEndsAt < nowAsRecifeWallClock();
+  const canRate =
+    Boolean(session?.user) && matchHasEnded && viewerStatus === ParticipantStatus.CONFIRMED;
+  const rateableParticipants =
+    canRate && session?.user
+      ? await new PrismaPlayerRatingRepository().listRateableParticipants(match.id, session.user.id)
+      : [];
 
   const confirmed = match.participants.filter((p) => p.status === ParticipantStatus.CONFIRMED);
   const waitlisted = match.participants.filter((p) => p.status === ParticipantStatus.WAITLIST);
@@ -261,6 +277,77 @@ export default async function PartidaDetalhePage({
           </>
         )}
       </section>
+
+      {canRate && rateableParticipants.length > 0 && (
+        <section>
+          <h2 className="text-lg font-semibold tracking-tight text-zinc-950 dark:text-zinc-50">
+            Avalie os jogadores
+          </h2>
+
+          {ratingError && (
+            <p className="mt-2 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950 dark:text-red-300">
+              {ratingError}
+            </p>
+          )}
+          {ratingSuccess && (
+            <p className="mt-2 rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">
+              Avaliação registrada.
+            </p>
+          )}
+
+          <ul className="mt-2 flex flex-col gap-3">
+            {rateableParticipants.map((player) => (
+              <li
+                key={player.userId}
+                className="rounded-lg border border-zinc-200 p-3 dark:border-zinc-800"
+              >
+                <p className="text-sm font-medium text-zinc-950 dark:text-zinc-50">
+                  {player.name ?? "Jogador"}
+                </p>
+                {player.myRating !== null ? (
+                  <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+                    Sua avaliação: {"★".repeat(player.myRating)}
+                    {"☆".repeat(5 - player.myRating)}
+                    {player.myComment ? ` — "${player.myComment}"` : ""}
+                  </p>
+                ) : (
+                  <form action={ratePlayerAction} className="mt-2 flex flex-wrap items-end gap-3">
+                    <input type="hidden" name="matchId" value={match.id} />
+                    <input type="hidden" name="ratedUserId" value={player.userId} />
+                    <label className="flex flex-col gap-1 text-xs font-medium text-zinc-700 dark:text-zinc-300">
+                      Nota
+                      <select
+                        name="rating"
+                        defaultValue="5"
+                        className="w-20 rounded-md border border-zinc-300 bg-white px-2 py-1 text-sm text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+                      >
+                        {[5, 4, 3, 2, 1].map((value) => (
+                          <option key={value} value={value}>
+                            {value} ★
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <input
+                      type="text"
+                      name="comment"
+                      placeholder="Comentário (opcional)"
+                      maxLength={500}
+                      className="flex-1 rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+                    />
+                    <button
+                      type="submit"
+                      className="rounded-full bg-zinc-900 px-3 py-1.5 text-xs font-semibold text-white dark:bg-zinc-100 dark:text-zinc-900"
+                    >
+                      Avaliar
+                    </button>
+                  </form>
+                )}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {session?.user && viewerStatus === ParticipantStatus.CONFIRMED && (
         <MatchChat matchId={match.id} currentUserId={session.user.id} />
