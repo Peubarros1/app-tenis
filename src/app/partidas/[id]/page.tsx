@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { MatchChat } from "@/components/match-chat";
 import { ParticipantStatus } from "@/generated/prisma/client";
 import { PrismaMatchRepository } from "@/infrastructure/persistence/prisma/match-repository";
 import {
@@ -260,6 +261,10 @@ export default async function PartidaDetalhePage({
           </>
         )}
       </section>
+
+      {session?.user && viewerStatus === ParticipantStatus.CONFIRMED && (
+        <MatchChat matchId={match.id} currentUserId={session.user.id} />
+      )}
     </div>
   );
 }

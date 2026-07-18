@@ -6,7 +6,7 @@ Plataforma web para jogadores de tênis em Recife: encontrar quadras (públicas 
 
 - **Next.js 16** (App Router) + **TypeScript** — full-stack (Route Handlers/Server Actions, sem backend separado)
 - **PostgreSQL + PostGIS** (busca geoespacial) via **Prisma ORM**
-- **Redis** — cache, filas e pub/sub do chat de partidas
+- **Redis** — provisionado para cache/filas futuras (chat de partidas usa polling via Server Actions, não Redis — ver Etapa 8)
 - **NextAuth.js (Auth.js v5)** — autenticação (e-mail/senha via Credentials + Google opcional)
 - **Tailwind CSS**
 - **Leaflet + OpenStreetMap** — mapa de quadras (sem custo, sem chave de API)
@@ -88,6 +88,6 @@ Abra [http://localhost:3000](http://localhost:3000).
 5. ✅ Quadras (mapa, busca, filtros)
 6. ✅ Reservas (pública oficial / pública sem sistema / privada)
 7. ✅ Partidas / peladas
-8. Chat em tempo real
+8. ✅ Chat da partida (quase-tempo-real via polling)
 9. Social (amigos, convites, notificações)
 10. Avaliações e estatísticas

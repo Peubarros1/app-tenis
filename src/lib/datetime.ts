@@ -27,3 +27,17 @@ export function formatRecifeDateTime(date: Date): string {
   const minute = String(date.getUTCMinutes()).padStart(2, "0");
   return `${day}/${month}/${year} ${hour}:${minute}`;
 }
+
+/**
+ * Para timestamps GENUÍNOS em UTC (ex.: `createdAt` gerado pelo `now()` do
+ * Postgres) — diferente de `formatRecifeDateTime`, que é só para os campos
+ * que NÓS construímos como "hora de parede disfarçada de UTC" (agendamento
+ * de reserva/partida). Aqui a conversão de fuso é de verdade.
+ */
+export function formatRecifeTime(date: Date): string {
+  return date.toLocaleTimeString("pt-BR", {
+    timeZone: "America/Recife",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
