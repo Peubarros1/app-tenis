@@ -18,4 +18,6 @@ export interface CreateUserInput {
 export interface UserRepository {
   findByEmail(email: string): Promise<AuthUser | null>;
   create(input: CreateUserInput): Promise<AuthUser>;
+  /** Distingue a violação da constraint @unique de e-mail de qualquer outro erro do `create`. */
+  isUniqueEmailViolation(error: unknown): boolean;
 }

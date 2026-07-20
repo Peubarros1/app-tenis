@@ -17,11 +17,22 @@ export class RegisterUser {
 
     const passwordHash = await bcrypt.hash(input.password, PASSWORD_SALT_ROUNDS);
 
-    return this.userRepository.create({
-      name: input.name,
-      email: input.email,
-      passwordHash,
-      skillLevel: SkillLevel.INICIANTE,
-    });
+    try {
+      return await this.userRepository.create({
+        name: input.name,
+        email: input.email,
+        passwordHash,
+        skillLevel: SkillLevel.INICIANTE,
+      });
+    } catch (error) {
+      // Corrida entre o check acima e o create (ex.: duplo submit do
+      // formulário) pode deixar dois requests passarem pelo findByEmail
+      // antes de qualquer um criar a linha — a constraint @unique do banco
+      // é quem pega isso de verdade; traduzimos para o mesmo erro amigável.
+      if (this.userRepository.isUniqueEmailViolation(error)) {
+        throw new EmailAlreadyInUseError(input.email);
+      }
+      throw error;
+    }
   }
 }

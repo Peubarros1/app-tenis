@@ -1,3 +1,4 @@
+import { PrismaClientKnownRequestError } from "@/generated/prisma/internal/prismaNamespace";
 import type {
   AuthUser,
   CreateUserInput,
@@ -18,5 +19,13 @@ export class PrismaUserRepository implements UserRepository {
       data: input,
       select: { id: true, name: true, email: true, image: true, passwordHash: true },
     });
+  }
+
+  isUniqueEmailViolation(error: unknown): boolean {
+    return (
+      error instanceof PrismaClientKnownRequestError &&
+      error.code === "P2002" &&
+      (error.meta?.target as string[] | undefined)?.includes("email") === true
+    );
   }
 }
