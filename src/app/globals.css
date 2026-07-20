@@ -2,7 +2,7 @@
 
 :root {
   --background: #ffffff;
-  --foreground: #171717;
+  --foreground: #0a0a0a;
 }
 
 @theme inline {
@@ -10,17 +10,82 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+
+  /* Brand — teal inspirado em quadra/mar de Recife. Uso: CTAs primários,
+     links ativos, marcador de quadra pública, foco de inputs. */
+  --color-brand-50: #effcf9;
+  --color-brand-100: #d5f5ee;
+  --color-brand-200: #abe9de;
+  --color-brand-300: #78d6c8;
+  --color-brand-400: #45bcae;
+  --color-brand-500: #229e93;
+  --color-brand-600: #157f77;
+  --color-brand-700: #126862;
+  --color-brand-800: #12534f;
+  --color-brand-900: #113f3d;
+  --color-brand-950: #062523;
+
+  /* Accent — coral/pôr do sol. Uso: destaques pontuais, marcador de quadra
+     privada, badges de "favorito", nunca como cor dominante da tela. */
+  --color-accent-50: #fff4f1;
+  --color-accent-100: #ffe4dc;
+  --color-accent-200: #ffc7b8;
+  --color-accent-300: #ffa286;
+  --color-accent-400: #ff7a54;
+  --color-accent-500: #ff5a2e;
+  --color-accent-600: #ed3e14;
+  --color-accent-700: #c62e0d;
+  --color-accent-800: #9e2710;
+  --color-accent-900: #7f2412;
+  --color-accent-950: #450f06;
+
+  /* Sombras discretas — nunca o shadow-lg padrão do Tailwind, que é pesado
+     demais para um app "premium". Combinadas com dark:ring nos componentes,
+     já que sombra quase não aparece em fundo escuro. */
+  --shadow-soft: 0 1px 2px 0 rgb(0 0 0 / 0.04), 0 1px 3px 0 rgb(0 0 0 / 0.06);
+  --shadow-medium: 0 4px 6px -1px rgb(0 0 0 / 0.07), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+  --shadow-strong: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.06);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #0a0a0a;
-    --foreground: #ededed;
+    --foreground: #f5f5f5;
   }
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Barra de rolagem discreta (webkit) — detalhe de acabamento premium */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, currentColor 20%, transparent);
+  border-radius: 999px;
+}
+
+/* Some horizontal filter/chip rows should scroll without a visible scrollbar. */
+.scrollbar-hide {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Leaflet's internal panes use z-index up to ~1000 (markers, popups,
+   controls) with no stacking context of their own, so they can paint over
+   unrelated fixed-position UI (modals, bottom sheets) elsewhere on the page.
+   Isolating the map container confines that z-index range to itself. */
+.leaflet-container {
+  isolation: isolate;
 }

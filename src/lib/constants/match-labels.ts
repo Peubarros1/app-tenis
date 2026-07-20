@@ -1,4 +1,4 @@
-import { MatchStatus, MatchVisibility, ParticipantStatus } from "@/generated/prisma/client";
+import { MatchStatus, MatchVisibility, ParticipantStatus } from "@/generated/prisma/enums";
 
 export const MATCH_STATUS_LABELS: Record<MatchStatus, string> = {
   [MatchStatus.OPEN]: "Aberta",

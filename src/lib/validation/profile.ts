@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { SkillLevel } from "@/generated/prisma/client";
+import { SkillLevel } from "@/generated/prisma/enums";
 
 export const updateProfileSchema = z.object({
   name: z.string().trim().min(2, "Informe seu nome completo.").max(100),

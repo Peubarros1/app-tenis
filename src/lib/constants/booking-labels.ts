@@ -1,4 +1,4 @@
-import { BookingStatus } from "@/generated/prisma/client";
+import { BookingStatus } from "@/generated/prisma/enums";
 
 export const BOOKING_STATUS_LABELS: Record<BookingStatus, string> = {
   [BookingStatus.PENDING]: "Pendente",

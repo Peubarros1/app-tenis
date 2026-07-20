@@ -27,3 +27,26 @@ export async function toggleFavoriteCourtAction(formData: FormData) {
     redirect(redirectTo);
   }
 }
+
+/**
+ * Mesma ação, mas invocada como RPC (não ligada a um <form>) por componentes
+ * client-side que querem atualização otimista sem navegação — ex.: o botão
+ * de favorito no card da busca instantânea.
+ */
+export async function toggleFavoriteCourtRpcAction(
+  courtId: string,
+): Promise<{ favorited: boolean }> {
+  const session = await auth();
+  if (!session?.user) {
+    throw new Error("UNAUTHENTICATED");
+  }
+
+  const toggleFavoriteCourt = new ToggleFavoriteCourt(new PrismaCourtRepository());
+  const favorited = await toggleFavoriteCourt.execute(courtId, session.user.id);
+
+  revalidatePath("/quadras");
+  revalidatePath(`/quadras/${courtId}`);
+  revalidatePath("/conta");
+
+  return { favorited };
+}

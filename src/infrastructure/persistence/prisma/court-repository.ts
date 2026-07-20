@@ -14,20 +14,26 @@ function average(ratings: number[]): number | null {
   return ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length;
 }
 
-const SUMMARY_SELECT = {
-  id: true,
-  name: true,
-  neighborhood: true,
-  courtType: true,
-  surfaceType: true,
-  isLighted: true,
-  hourlyPriceCents: true,
-  latitude: true,
-  longitude: true,
-  reviews: { select: { rating: true } },
-} satisfies Prisma.CourtSelect;
+function summarySelect(viewerUserId?: string) {
+  return {
+    id: true,
+    name: true,
+    neighborhood: true,
+    courtType: true,
+    surfaceType: true,
+    isLighted: true,
+    hourlyPriceCents: true,
+    latitude: true,
+    longitude: true,
+    reviews: { select: { rating: true } },
+    photos: { orderBy: { position: "asc" }, take: 1, select: { url: true } },
+    ...(viewerUserId
+      ? { favoritedBy: { where: { userId: viewerUserId }, select: { userId: true } } }
+      : {}),
+  } satisfies Prisma.CourtSelect;
+}
 
-function toSummary(court: {
+type SummaryRow = {
   id: string;
   name: string;
   neighborhood: string;
@@ -38,7 +44,11 @@ function toSummary(court: {
   latitude: number;
   longitude: number;
   reviews: { rating: number }[];
-}): CourtSummary {
+  photos: { url: string }[];
+  favoritedBy?: { userId: string }[];
+};
+
+function toSummary(court: SummaryRow): CourtSummary {
   return {
     id: court.id,
     name: court.name,
@@ -51,13 +61,24 @@ function toSummary(court: {
     longitude: court.longitude,
     averageRating: average(court.reviews.map((review) => review.rating)),
     reviewCount: court.reviews.length,
+    coverPhotoUrl: court.photos[0]?.url ?? null,
+    isFavorited: (court.favoritedBy?.length ?? 0) > 0,
   };
 }
 
 export class PrismaCourtRepository implements CourtRepository {
-  async search(filters: CourtSearchFilters): Promise<CourtSummary[]> {
+  async search(filters: CourtSearchFilters, viewerUserId?: string): Promise<CourtSummary[]> {
     const where: Prisma.CourtWhereInput = {
+      ...(filters.query
+        ? {
+            OR: [
+              { name: { contains: filters.query, mode: "insensitive" } },
+              { neighborhood: { contains: filters.query, mode: "insensitive" } },
+            ],
+          }
+        : {}),
       ...(filters.neighborhood ? { neighborhood: filters.neighborhood } : {}),
+      ...(filters.courtType?.length ? { courtType: { in: filters.courtType } } : {}),
       ...(filters.surfaceType ? { surfaceType: filters.surfaceType } : {}),
       ...(filters.lightedOnly ? { isLighted: true } : {}),
       ...(filters.maxPriceCents !== undefined
@@ -67,7 +88,7 @@ export class PrismaCourtRepository implements CourtRepository {
 
     const courts = await prisma.court.findMany({
       where,
-      select: SUMMARY_SELECT,
+      select: summarySelect(viewerUserId),
       orderBy: { createdAt: "desc" },
     });
 
@@ -78,7 +99,7 @@ export class PrismaCourtRepository implements CourtRepository {
     const court = await prisma.court.findUnique({
       where: { id },
       select: {
-        ...SUMMARY_SELECT,
+        ...summarySelect(viewerUserId),
         description: true,
         bookingMode: true,
         isIndoor: true,
@@ -106,15 +127,10 @@ export class PrismaCourtRepository implements CourtRepository {
             user: { select: { name: true } },
           },
         },
-        ...(viewerUserId
-          ? { favoritedBy: { where: { userId: viewerUserId }, select: { userId: true } } }
-          : {}),
       },
     });
 
     if (!court) return null;
-
-    const favoritedBy = "favoritedBy" in court ? (court.favoritedBy as { userId: string }[]) : [];
 
     return {
       ...toSummary(court),
@@ -139,7 +155,6 @@ export class PrismaCourtRepository implements CourtRepository {
         userId: review.userId,
         userName: review.user.name,
       })),
-      isFavorited: favoritedBy.length > 0,
     };
   }
 

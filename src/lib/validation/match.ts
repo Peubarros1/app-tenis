@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { MatchVisibility, SkillLevel } from "@/generated/prisma/client";
+import { MatchVisibility, SkillLevel } from "@/generated/prisma/enums";
 import { SKILL_LEVEL_ORDER } from "@/lib/constants/skill-level-labels";
 
 const DURATIONS_MINUTES = [60, 90, 120, 180] as const;

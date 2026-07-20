@@ -53,3 +53,25 @@ export function formatRecifeFullDateTime(date: Date): string {
     minute: "2-digit",
   });
 }
+
+const RELATIVE_TIME_FORMATTER = new Intl.RelativeTimeFormat("pt-BR", { numeric: "auto" });
+
+/** "há 3 dias" etc, para timestamps GENUÍNOS em UTC (ex.: `createdAt`). */
+export function formatRelativeDate(date: Date): string {
+  const diffSeconds = Math.round((date.getTime() - Date.now()) / 1000);
+  const units: [Intl.RelativeTimeFormatUnit, number][] = [
+    ["year", 60 * 60 * 24 * 365],
+    ["month", 60 * 60 * 24 * 30],
+    ["week", 60 * 60 * 24 * 7],
+    ["day", 60 * 60 * 24],
+    ["hour", 60 * 60],
+    ["minute", 60],
+  ];
+
+  for (const [unit, secondsInUnit] of units) {
+    if (Math.abs(diffSeconds) >= secondsInUnit) {
+      return RELATIVE_TIME_FORMATTER.format(Math.round(diffSeconds / secondsInUnit), unit);
+    }
+  }
+  return RELATIVE_TIME_FORMATTER.format(diffSeconds, "second");
+}

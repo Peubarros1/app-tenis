@@ -1,4 +1,4 @@
-import { NotificationType } from "@/generated/prisma/client";
+import { NotificationType } from "@/generated/prisma/enums";
 
 export function describeNotification(
   type: NotificationType,

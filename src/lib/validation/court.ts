@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { BookingMode, CourtType, SurfaceType } from "@/generated/prisma/client";
+import { BookingMode, CourtType, SurfaceType } from "@/generated/prisma/enums";
 
 export const createCourtSchema = z.object({
   name: z.string().trim().min(3, "Informe o nome da quadra.").max(150),

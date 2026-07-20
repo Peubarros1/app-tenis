@@ -12,10 +12,15 @@ export interface CourtSummary {
   longitude: number;
   averageRating: number | null;
   reviewCount: number;
+  coverPhotoUrl: string | null;
+  isFavorited: boolean;
 }
 
 export interface CourtSearchFilters {
+  /** Busca livre por nome ou bairro. */
+  query?: string;
   neighborhood?: string;
+  courtType?: CourtType[];
   surfaceType?: SurfaceType;
   lightedOnly?: boolean;
   maxPriceCents?: number;
@@ -57,7 +62,6 @@ export interface CourtDetail extends CourtSummary {
   photos: CourtPhoto[];
   openingHours: CourtOpeningHour[];
   reviews: CourtReviewItem[];
-  isFavorited: boolean;
 }
 
 export interface CreateCourtInput {
@@ -89,7 +93,7 @@ export interface UpsertCourtReviewInput {
 }
 
 export interface CourtRepository {
-  search(filters: CourtSearchFilters): Promise<CourtSummary[]>;
+  search(filters: CourtSearchFilters, viewerUserId?: string): Promise<CourtSummary[]>;
   findById(id: string, viewerUserId?: string): Promise<CourtDetail | null>;
   create(input: CreateCourtInput): Promise<{ id: string }>;
   upsertReview(input: UpsertCourtReviewInput): Promise<void>;

@@ -1,23 +1,38 @@
+import { ChevronRight, Clock, Home, Lightbulb, Phone, Ruler, Wallet } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { StarRating } from "@/components/star-rating";
-import { BookingMode } from "@/generated/prisma/client";
+import { CourtMap } from "@/components/court-map-loader";
+import { Avatar } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
+import { InfoRow } from "@/components/ui/info-row";
+import { Input } from "@/components/ui/input";
+import { RatingStars } from "@/components/ui/rating-stars";
+import { Select } from "@/components/ui/select";
+import { BookingMode, CourtType } from "@/generated/prisma/enums";
 import { PrismaBookingRepository } from "@/infrastructure/persistence/prisma/booking-repository";
 import { PrismaCourtRepository } from "@/infrastructure/persistence/prisma/court-repository";
+import { auth } from "@/lib/auth";
+import { cn } from "@/lib/cn";
 import {
   BOOKING_MODE_LABELS,
-  COURT_TYPE_LABELS,
   SURFACE_TYPE_LABELS,
   WEEKDAY_LABELS,
 } from "@/lib/constants/court-labels";
-import { auth } from "@/lib/auth";
-import { formatRecifeDateTime } from "@/lib/datetime";
+import { formatRecifeDateTime, formatRelativeDate, nowAsRecifeWallClock } from "@/lib/datetime";
 import { toggleFavoriteCourtAction } from "../actions";
 import { addCourtReviewAction, createBookingAction } from "./actions";
+import { CourtActions } from "./_components/court-actions";
+import { CourtDistance } from "./_components/court-distance";
+import { PhotoGallery } from "./_components/photo-gallery";
+import { ReviewForm } from "./_components/review-form";
 
 function formatPrice(cents: number | null, currency: string) {
-  if (cents === null) return "Preço não informado";
-  return `${(cents / 100).toLocaleString("pt-BR", { style: "currency", currency })}/hora`;
+  if (cents === null) return "A combinar";
+  if (cents === 0) return "Gratuito";
+  return `${(cents / 100).toLocaleString("pt-BR", { style: "currency", currency })}/h`;
 }
 
 export default async function QuadraDetalhePage({
@@ -43,295 +58,283 @@ export default async function QuadraDetalhePage({
       ? await new PrismaBookingRepository().listUpcomingForCourt(court.id)
       : [];
 
+  const today = nowAsRecifeWallClock().getUTCDay();
+  const hasInPageBooking =
+    court.bookingMode === BookingMode.INTERNAL ||
+    (court.bookingMode === BookingMode.OFFICIAL_INTEGRATION && Boolean(court.officialBookingUrl));
+
   return (
-    <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-8 px-6 py-12">
-      <div>
+    <div className="flex flex-1 flex-col pb-24 lg:pb-12">
+      <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-6 sm:px-6 sm:py-8">
+        <nav className="flex items-center gap-1.5 text-sm text-zinc-500 dark:text-zinc-400">
+          <Link href="/quadras" className="hover:text-zinc-900 dark:hover:text-zinc-100">
+            Quadras
+          </Link>
+          <ChevronRight className="size-3.5" aria-hidden />
+          <span className="truncate text-zinc-700 dark:text-zinc-300">{court.name}</span>
+        </nav>
+
         <div className="flex items-start justify-between gap-4">
-          <h1 className="text-2xl font-semibold tracking-tight text-zinc-950 dark:text-zinc-50">
-            {court.name}
-          </h1>
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="text-2xl font-semibold tracking-tight text-zinc-950 dark:text-zinc-50">
+                {court.name}
+              </h1>
+              <Badge variant={court.courtType === CourtType.PRIVATE ? "accent" : "brand"}>
+                {court.courtType === CourtType.PRIVATE ? "Privada" : "Pública"}
+              </Badge>
+            </div>
+            <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+              {court.address} — {court.neighborhood}, {court.city}/{court.state}
+            </p>
+            <div className="mt-2 flex items-center gap-2">
+              {court.averageRating !== null ? (
+                <>
+                  <RatingStars value={court.averageRating} size="sm" />
+                  <span className="text-sm text-zinc-500 dark:text-zinc-400">
+                    {court.averageRating.toFixed(1)} ({court.reviewCount})
+                  </span>
+                </>
+              ) : (
+                <span className="text-sm text-zinc-400 dark:text-zinc-600">Sem avaliações</span>
+              )}
+            </div>
+          </div>
+
           {session?.user && (
-            <form action={toggleFavoriteCourtAction}>
+            <form action={toggleFavoriteCourtAction} className="shrink-0">
               <input type="hidden" name="courtId" value={court.id} />
               <input type="hidden" name="redirectTo" value={`/quadras/${court.id}`} />
-              <button
-                type="submit"
-                className="shrink-0 rounded-full border border-zinc-300 px-4 py-2 text-sm font-semibold text-zinc-900 transition-colors hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-50 dark:hover:bg-zinc-900"
-              >
-                {court.isFavorited ? "★ Favoritada" : "☆ Favoritar"}
-              </button>
+              <Button type="submit" variant="outline" size="icon" aria-label="Favoritar">
+                {court.isFavorited ? "★" : "☆"}
+              </Button>
             </form>
           )}
         </div>
-        <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-          {court.address} — {court.neighborhood}, {court.city}/{court.state}
-        </p>
-        <div className="mt-3">
-          <StarRating rating={court.averageRating} reviewCount={court.reviewCount} />
-        </div>
-      </div>
 
-      {court.photos.length > 0 && (
-        <div className="flex gap-3 overflow-x-auto">
-          {court.photos.map((photo) => (
-            // eslint-disable-next-line @next/next/no-img-element -- fotos vêm de URLs arbitrárias enviadas pelos usuários
-            <img
-              key={photo.id}
-              src={photo.url}
-              alt={court.name}
-              className="h-48 w-64 shrink-0 rounded-lg object-cover"
-            />
-          ))}
-        </div>
-      )}
+        <PhotoGallery photos={court.photos} alt={court.name} />
 
-      {court.description && (
-        <p className="text-sm text-zinc-700 dark:text-zinc-300">{court.description}</p>
-      )}
-
-      <dl className="grid grid-cols-2 gap-4 rounded-lg border border-zinc-200 p-4 text-sm dark:border-zinc-800">
-        <div>
-          <dt className="text-zinc-500 dark:text-zinc-400">Tipo</dt>
-          <dd className="font-medium text-zinc-950 dark:text-zinc-50">
-            {COURT_TYPE_LABELS[court.courtType]}
-          </dd>
-        </div>
-        <div>
-          <dt className="text-zinc-500 dark:text-zinc-400">Piso</dt>
-          <dd className="font-medium text-zinc-950 dark:text-zinc-50">
-            {SURFACE_TYPE_LABELS[court.surfaceType]}
-          </dd>
-        </div>
-        <div>
-          <dt className="text-zinc-500 dark:text-zinc-400">Iluminação</dt>
-          <dd className="font-medium text-zinc-950 dark:text-zinc-50">
-            {court.isLighted ? "Sim" : "Não"}
-          </dd>
-        </div>
-        <div>
-          <dt className="text-zinc-500 dark:text-zinc-400">Coberta</dt>
-          <dd className="font-medium text-zinc-950 dark:text-zinc-50">
-            {court.isIndoor ? "Sim" : "Não"}
-          </dd>
-        </div>
-        <div>
-          <dt className="text-zinc-500 dark:text-zinc-400">Preço</dt>
-          <dd className="font-medium text-zinc-950 dark:text-zinc-50">
-            {formatPrice(court.hourlyPriceCents, court.currency)}
-          </dd>
-        </div>
-        {court.phone && (
-          <div>
-            <dt className="text-zinc-500 dark:text-zinc-400">Telefone</dt>
-            <dd className="font-medium text-zinc-950 dark:text-zinc-50">{court.phone}</dd>
-          </div>
-        )}
-      </dl>
-
-      <div className="rounded-lg border border-zinc-200 p-4 dark:border-zinc-800">
-        <h2 className="text-sm font-semibold text-zinc-950 dark:text-zinc-50">
-          {BOOKING_MODE_LABELS[court.bookingMode]}
-        </h2>
-        {court.bookingMode === BookingMode.OFFICIAL_INTEGRATION && court.officialBookingUrl && (
-          <a
-            href={court.officialBookingUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-2 inline-block text-sm font-medium text-zinc-900 underline underline-offset-2 dark:text-zinc-50"
-          >
-            Reservar no site oficial →
-          </a>
-        )}
-        {court.bookingMode === BookingMode.INFORMATIONAL && court.bookingInstructions && (
-          <p className="mt-2 text-sm text-zinc-700 dark:text-zinc-300">
-            {court.bookingInstructions}
+        {court.description && (
+          <p className="text-sm leading-relaxed text-zinc-700 dark:text-zinc-300">
+            {court.description}
           </p>
         )}
-        {court.bookingMode === BookingMode.INTERNAL && (
-          <div className="mt-3 flex flex-col gap-4">
-            {bookingError && (
-              <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950 dark:text-red-300">
-                {bookingError}
-              </p>
-            )}
-            {bookingSuccess && (
-              <p className="rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">
-                Reserva confirmada! Veja em{" "}
-                <Link href="/reservas" className="underline underline-offset-2">
-                  Minhas reservas
-                </Link>
-                .
-              </p>
-            )}
 
-            {upcomingBookings.length > 0 && (
-              <div>
-                <h3 className="text-xs font-semibold tracking-wide text-zinc-500 uppercase dark:text-zinc-400">
-                  Próximos horários já reservados
-                </h3>
-                <ul className="mt-1 flex flex-col gap-1 text-sm text-zinc-700 dark:text-zinc-300">
-                  {upcomingBookings.map((slot) => (
-                    <li key={slot.startTime.toISOString()}>
-                      {formatRecifeDateTime(slot.startTime)} – {formatRecifeDateTime(slot.endTime)}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
+        <Card variant="flat" padding="sm">
+          <div className="grid grid-cols-2 gap-x-4 sm:grid-cols-3">
+            <InfoRow icon={Ruler} label="Piso" value={SURFACE_TYPE_LABELS[court.surfaceType]} />
+            <InfoRow icon={Lightbulb} label="Iluminação" value={court.isLighted ? "Sim" : "Não"} />
+            <InfoRow icon={Home} label="Coberta" value={court.isIndoor ? "Sim" : "Não"} />
+            <InfoRow
+              icon={Wallet}
+              label="Preço"
+              value={formatPrice(court.hourlyPriceCents, court.currency)}
+            />
+            {court.phone && <InfoRow icon={Phone} label="Telefone" value={court.phone} />}
+          </div>
+        </Card>
 
-            {session?.user ? (
-              <form action={createBookingAction} className="flex flex-wrap items-end gap-3">
-                <input type="hidden" name="courtId" value={court.id} />
-                <label className="flex flex-col gap-1 text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                  Data
-                  <input
-                    type="date"
-                    name="date"
-                    required
-                    className="rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
-                  />
-                </label>
-                <label className="flex flex-col gap-1 text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                  Início
-                  <input
+        <Card id="reservar" variant="elevated" padding="lg" className="scroll-mt-20">
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="text-base font-semibold text-zinc-950 dark:text-zinc-50">Reservar</h2>
+            <Badge variant="neutral">{BOOKING_MODE_LABELS[court.bookingMode]}</Badge>
+          </div>
+
+          {court.bookingMode === BookingMode.OFFICIAL_INTEGRATION && court.officialBookingUrl && (
+            <Button asChild className="mt-4 w-full sm:w-auto">
+              <a href={court.officialBookingUrl} target="_blank" rel="noopener noreferrer">
+                Reservar no site oficial
+              </a>
+            </Button>
+          )}
+
+          {court.bookingMode === BookingMode.INFORMATIONAL && court.bookingInstructions && (
+            <p className="mt-3 text-sm text-zinc-700 dark:text-zinc-300">
+              {court.bookingInstructions}
+            </p>
+          )}
+
+          {court.bookingMode === BookingMode.INTERNAL && (
+            <div className="mt-4 flex flex-col gap-4">
+              {bookingError && (
+                <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950 dark:text-red-300">
+                  {bookingError}
+                </p>
+              )}
+              {bookingSuccess && (
+                <p className="rounded-xl bg-emerald-50 px-3 py-2 text-sm text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">
+                  Reserva confirmada! Veja em{" "}
+                  <Link href="/reservas" className="underline underline-offset-2">
+                    Minhas reservas
+                  </Link>
+                  .
+                </p>
+              )}
+
+              {upcomingBookings.length > 0 && (
+                <div>
+                  <h3 className="text-xs font-semibold tracking-wide text-zinc-500 uppercase dark:text-zinc-400">
+                    Próximos horários já reservados
+                  </h3>
+                  <ul className="mt-1.5 flex flex-col gap-1 text-sm text-zinc-700 dark:text-zinc-300">
+                    {upcomingBookings.map((slot) => (
+                      <li key={slot.startTime.toISOString()}>
+                        {formatRecifeDateTime(slot.startTime)} –{" "}
+                        {formatRecifeDateTime(slot.endTime)}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {session?.user ? (
+                <form action={createBookingAction} className="flex flex-wrap items-end gap-3">
+                  <input type="hidden" name="courtId" value={court.id} />
+                  <Input label="Data" type="date" name="date" required className="w-40" />
+                  <Input
+                    label="Início"
                     type="time"
                     name="startTime"
                     defaultValue="08:00"
                     required
-                    className="rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+                    className="w-32"
                   />
-                </label>
-                <label className="flex flex-col gap-1 text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                  Duração
-                  <select
-                    name="durationMinutes"
-                    defaultValue="60"
-                    className="rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
-                  >
+                  <Select label="Duração" name="durationMinutes" defaultValue="60" className="w-32">
                     <option value="60">1 hora</option>
                     <option value="90">1h30</option>
                     <option value="120">2 horas</option>
-                  </select>
-                </label>
-                <button
-                  type="submit"
-                  className="rounded-full bg-zinc-900 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
-                >
-                  Reservar
-                </button>
-              </form>
-            ) : (
-              <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                <Link href="/login" className="underline underline-offset-2">
-                  Entre na sua conta
-                </Link>{" "}
-                para reservar esta quadra.
-              </p>
-            )}
+                  </Select>
+                  <Button type="submit">Reservar</Button>
+                </form>
+              ) : (
+                <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                  <Link href="/login" className="underline underline-offset-2">
+                    Entre na sua conta
+                  </Link>{" "}
+                  para reservar esta quadra.
+                </p>
+              )}
+            </div>
+          )}
+        </Card>
+
+        <Card variant="flat" padding="lg" className="flex flex-col gap-4">
+          <h2 className="text-base font-semibold text-zinc-950 dark:text-zinc-50">Localização</h2>
+          <div className="h-48 w-full overflow-hidden rounded-xl">
+            <CourtMap courts={[court]} selectedCourtId={court.id} />
           </div>
+          <CourtDistance latitude={court.latitude} longitude={court.longitude} />
+          <CourtActions
+            name={court.name}
+            address={court.address}
+            latitude={court.latitude}
+            longitude={court.longitude}
+          />
+        </Card>
+
+        {court.openingHours.length > 0 && (
+          <Card variant="flat" padding="lg">
+            <h2 className="mb-2 flex items-center gap-2 text-base font-semibold text-zinc-950 dark:text-zinc-50">
+              <Clock className="size-4" aria-hidden />
+              Horário de funcionamento
+            </h2>
+            <ul className="flex flex-col divide-y divide-zinc-100 dark:divide-zinc-800">
+              {court.openingHours.map((hour) => (
+                <li
+                  key={hour.dayOfWeek}
+                  className={cn(
+                    "flex justify-between py-1.5 text-sm",
+                    hour.dayOfWeek === today && "text-brand-700 dark:text-brand-400 font-semibold",
+                  )}
+                >
+                  <span
+                    className={hour.dayOfWeek === today ? "" : "text-zinc-600 dark:text-zinc-400"}
+                  >
+                    {WEEKDAY_LABELS[hour.dayOfWeek]}
+                  </span>
+                  <span
+                    className={
+                      hour.dayOfWeek === today ? "" : "font-medium text-zinc-950 dark:text-zinc-50"
+                    }
+                  >
+                    {hour.opensAt} – {hour.closesAt}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </Card>
         )}
+
+        <section>
+          <h2 className="text-lg font-semibold tracking-tight text-zinc-950 dark:text-zinc-50">
+            Avaliações
+          </h2>
+
+          {error && (
+            <p className="mt-4 rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950 dark:text-red-300">
+              {error}
+            </p>
+          )}
+
+          {session?.user ? (
+            <div className="mt-4">
+              <ReviewForm courtId={court.id} action={addCourtReviewAction} />
+            </div>
+          ) : (
+            <p className="mt-4 text-sm text-zinc-500 dark:text-zinc-400">
+              <Link href="/login" className="underline underline-offset-2">
+                Entre na sua conta
+              </Link>{" "}
+              para avaliar esta quadra.
+            </p>
+          )}
+
+          {court.reviews.length === 0 ? (
+            <div className="mt-4">
+              <EmptyState
+                icon={Clock}
+                title="Ainda não há avaliações"
+                description="Seja o primeiro a avaliar esta quadra depois de jogar aqui."
+              />
+            </div>
+          ) : (
+            <ul className="mt-6 flex flex-col gap-5">
+              {court.reviews.map((review) => (
+                <li
+                  key={review.id}
+                  className="flex gap-3 border-t border-zinc-200 pt-5 dark:border-zinc-800"
+                >
+                  <Avatar name={review.userName} size="sm" />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
+                      <span className="font-medium text-zinc-950 dark:text-zinc-50">
+                        {review.userName ?? "Jogador"}
+                      </span>
+                      <span className="text-xs text-zinc-400 dark:text-zinc-600">
+                        {formatRelativeDate(review.createdAt)}
+                      </span>
+                    </div>
+                    <RatingStars value={review.rating} size="sm" className="mt-0.5" />
+                    {review.comment && (
+                      <p className="mt-1.5 text-sm text-zinc-700 dark:text-zinc-300">
+                        {review.comment}
+                      </p>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
       </div>
 
-      {court.openingHours.length > 0 && (
-        <div>
-          <h2 className="text-lg font-semibold tracking-tight text-zinc-950 dark:text-zinc-50">
-            Horário de funcionamento
-          </h2>
-          <ul className="mt-2 flex flex-col gap-1 text-sm">
-            {court.openingHours.map((hour) => (
-              <li key={hour.dayOfWeek} className="flex justify-between">
-                <span className="text-zinc-600 dark:text-zinc-400">
-                  {WEEKDAY_LABELS[hour.dayOfWeek]}
-                </span>
-                <span className="font-medium text-zinc-950 dark:text-zinc-50">
-                  {hour.opensAt} – {hour.closesAt}
-                </span>
-              </li>
-            ))}
-          </ul>
+      {hasInPageBooking && (
+        <div className="shadow-strong fixed inset-x-0 bottom-0 z-40 border-t border-zinc-200 bg-white/95 px-4 py-3 backdrop-blur-sm lg:hidden dark:border-zinc-800 dark:bg-zinc-950/95">
+          <Button asChild className="w-full">
+            <a href="#reservar">{formatPrice(court.hourlyPriceCents, court.currency)} · Reservar</a>
+          </Button>
         </div>
       )}
-
-      <section>
-        <h2 className="text-lg font-semibold tracking-tight text-zinc-950 dark:text-zinc-50">
-          Avaliações
-        </h2>
-
-        {error && (
-          <p className="mt-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950 dark:text-red-300">
-            {error}
-          </p>
-        )}
-
-        {session?.user ? (
-          <form action={addCourtReviewAction} className="mt-4 flex flex-col gap-3">
-            <input type="hidden" name="courtId" value={court.id} />
-            <label className="flex flex-col gap-1 text-sm font-medium text-zinc-700 dark:text-zinc-300">
-              Sua nota
-              <select
-                name="rating"
-                defaultValue="5"
-                className="w-24 rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
-              >
-                {[5, 4, 3, 2, 1].map((value) => (
-                  <option key={value} value={value}>
-                    {value} ★
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="flex flex-col gap-1 text-sm font-medium text-zinc-700 dark:text-zinc-300">
-              Comentário (opcional)
-              <textarea
-                name="comment"
-                rows={2}
-                maxLength={500}
-                className="resize-none rounded-md border border-zinc-300 bg-white px-3 py-2 text-base text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
-              />
-            </label>
-            <button
-              type="submit"
-              className="w-fit rounded-full bg-zinc-900 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
-            >
-              Enviar avaliação
-            </button>
-          </form>
-        ) : (
-          <p className="mt-4 text-sm text-zinc-500 dark:text-zinc-400">
-            <Link href="/login" className="underline underline-offset-2">
-              Entre na sua conta
-            </Link>{" "}
-            para avaliar esta quadra.
-          </p>
-        )}
-
-        {court.reviews.length === 0 ? (
-          <p className="mt-6 text-sm text-zinc-500 dark:text-zinc-400">
-            Ainda não há avaliações para esta quadra.
-          </p>
-        ) : (
-          <ul className="mt-6 flex flex-col gap-4">
-            {court.reviews.map((review) => (
-              <li key={review.id} className="border-t border-zinc-200 pt-4 dark:border-zinc-800">
-                <div className="flex items-center justify-between">
-                  <span className="font-medium text-zinc-950 dark:text-zinc-50">
-                    {review.userName ?? "Jogador"}
-                  </span>
-                  <span className="text-amber-500" aria-hidden>
-                    {"★".repeat(review.rating)}
-                    <span className="text-zinc-300 dark:text-zinc-700">
-                      {"★".repeat(5 - review.rating)}
-                    </span>
-                  </span>
-                </div>
-                {review.comment && (
-                  <p className="mt-1 text-sm text-zinc-700 dark:text-zinc-300">{review.comment}</p>
-                )}
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
     </div>
   );
 }

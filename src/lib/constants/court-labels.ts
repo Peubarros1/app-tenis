@@ -1,4 +1,4 @@
-import { BookingMode, CourtType, SurfaceType } from "@/generated/prisma/client";
+import { BookingMode, CourtType, SurfaceType } from "@/generated/prisma/enums";
 
 export const SURFACE_TYPE_LABELS: Record<SurfaceType, string> = {
   [SurfaceType.SAIBRO]: "Saibro",

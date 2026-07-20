@@ -1,4 +1,4 @@
-import { SkillLevel } from "@/generated/prisma/client";
+import { SkillLevel } from "@/generated/prisma/enums";
 
 export const SKILL_LEVEL_LABELS: Record<SkillLevel, string> = {
   [SkillLevel.INICIANTE]: "Iniciante",
