@@ -1,3 +1,4 @@
+import { Bell } from "lucide-react";
 import Link from "next/link";
 import { Logo } from "@/components/logo";
 import { PrismaNotificationRepository } from "@/infrastructure/persistence/prisma/notification-repository";
@@ -46,9 +47,15 @@ export async function SiteHeader() {
               </Link>
               <Link
                 href="/notificacoes"
-                className="shrink-0 whitespace-nowrap text-zinc-700 hover:text-zinc-950 dark:text-zinc-300 dark:hover:text-zinc-50"
+                aria-label="Notificações"
+                className="relative inline-flex shrink-0 items-center text-zinc-700 hover:text-zinc-950 dark:text-zinc-300 dark:hover:text-zinc-50"
               >
-                🔔{unreadCount > 0 ? ` ${unreadCount}` : ""}
+                <Bell className="size-[18px]" aria-hidden />
+                {unreadCount > 0 && (
+                  <span className="bg-accent-500 absolute -top-1.5 -right-2 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-semibold text-white">
+                    {unreadCount > 9 ? "9+" : unreadCount}
+                  </span>
+                )}
               </Link>
               <Link
                 href="/conta"
