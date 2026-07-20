@@ -98,7 +98,7 @@ const REAL_COURTS = [
     photo:
       "https://cdn.folhape.com.br/img/pc/1100/1/dn_arquivo/2023/08/whatsapp-image-2023-08-24-at-183959.jpeg",
     courtType: CourtType.PRIVATE,
-    bookingMode: BookingMode.INTERNAL,
+    bookingMode: BookingMode.OFFICIAL_INTEGRATION,
     surfaceType: SurfaceType.SAIBRO,
     isLighted: true,
     isIndoor: true,
@@ -118,7 +118,7 @@ const REAL_COURTS = [
       "Associação Atlética Banco do Brasil, com quadras de tênis cobertas e iluminadas para uso de associados.",
     photo: "https://www.aabbsp.com.br/storage/blog/revitalizacao-do-ginasio-de-tenis.webp",
     courtType: CourtType.PRIVATE,
-    bookingMode: BookingMode.INTERNAL,
+    bookingMode: BookingMode.OFFICIAL_INTEGRATION,
     surfaceType: SurfaceType.SAIBRO,
     isLighted: true,
     isIndoor: false,
