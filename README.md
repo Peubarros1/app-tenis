@@ -1,6 +1,6 @@
 # Tennis Platform — Recife
 
-Plataforma web para jogadores de tênis em Recife: encontrar quadras (públicas e privadas), organizar partidas/peladas e, quando possível, reservar horários.
+Plataforma web Saibro para jogadores de tênis em Recife: encontrar quadras (públicas e privadas), organizar partidas/peladas e, quando possível, reservar horários.
 
 ## Stack
 
