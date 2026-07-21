@@ -10,6 +10,7 @@ import { SKILL_LEVEL_LABELS } from "@/lib/constants/skill-level-labels";
 import { SkillLevel } from "@/generated/prisma/client";
 import { LocationButton } from "@/components/location-button";
 import { formatRecifeDateTime } from "@/lib/datetime";
+import { PhotoField } from "./_components/photo-field";
 import { updateProfileAction } from "./actions";
 
 export default async function ContaPage({
@@ -70,16 +71,7 @@ export default async function ContaPage({
           />
         </label>
 
-        <label className="flex flex-col gap-1 text-sm font-medium text-zinc-700 dark:text-zinc-300">
-          Foto de perfil (URL)
-          <input
-            type="url"
-            name="image"
-            placeholder="https://…"
-            defaultValue={profile.image ?? ""}
-            className="rounded-md border border-zinc-300 bg-white px-3 py-2 text-base text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
-          />
-        </label>
+        <PhotoField name="image" defaultValue={profile.image ?? ""} />
 
         <label className="flex flex-col gap-1 text-sm font-medium text-zinc-700 dark:text-zinc-300">
           Bio

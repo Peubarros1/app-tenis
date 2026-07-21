@@ -1,15 +1,23 @@
 import { Bell } from "lucide-react";
 import Link from "next/link";
+import { Avatar } from "@/components/ui/avatar";
 import { Logo } from "@/components/logo";
 import { PrismaNotificationRepository } from "@/infrastructure/persistence/prisma/notification-repository";
+import { PrismaPlayerRepository } from "@/infrastructure/persistence/prisma/player-repository";
 import { auth } from "@/lib/auth";
 import { signOutAction } from "@/lib/auth-actions";
 
 export async function SiteHeader() {
   const session = await auth();
-  const unreadCount = session?.user
-    ? await new PrismaNotificationRepository().countUnread(session.user.id)
-    : 0;
+  // Busca o perfil fresco do banco (não confia no image/name em cache do
+  // JWT da sessão, que só é atualizado no login e ficaria desatualizado
+  // se o usuário trocasse a foto depois).
+  const [unreadCount, profile] = session?.user
+    ? await Promise.all([
+        new PrismaNotificationRepository().countUnread(session.user.id),
+        new PrismaPlayerRepository().findById(session.user.id),
+      ])
+    : [0, null];
 
   return (
     <header className="border-b border-zinc-200 dark:border-zinc-800">
@@ -59,9 +67,12 @@ export async function SiteHeader() {
               </Link>
               <Link
                 href="/conta"
-                className="max-w-24 shrink-0 truncate whitespace-nowrap text-zinc-700 hover:text-zinc-950 sm:max-w-none dark:text-zinc-300 dark:hover:text-zinc-50"
+                className="flex shrink-0 items-center gap-2 text-zinc-700 hover:text-zinc-950 dark:text-zinc-300 dark:hover:text-zinc-50"
               >
-                {session.user.name ?? session.user.email}
+                <Avatar src={profile?.image} name={profile?.name ?? session.user.name} size="xs" />
+                <span className="max-w-24 truncate whitespace-nowrap sm:max-w-none">
+                  {profile?.name ?? session.user.name ?? session.user.email}
+                </span>
               </Link>
               <form action={signOutAction} className="shrink-0">
                 <button
